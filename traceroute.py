@@ -6,9 +6,8 @@ from icmp import IcmpPack
 class Traceroute:
     def __init__(self, host: str):
         self._host = socket.gethostbyname(host)
-        self._port = 33434
         self._max_hops = 30
-        self._ttl = 0
+        self._ttl = 1
 
     @staticmethod
     def _is_over(icmp: IcmpPack) -> bool:
@@ -24,7 +23,7 @@ class Traceroute:
                              socket.IP_TTL,
                              self._ttl)
         recv_sock = socket.socket(socket.AF_INET,
-                                  socket.SOCK_DGRAM,
+                                  socket.SOCK_RAW,
                                   socket.IPPROTO_ICMP)
         recv_sock.settimeout(3)
         return send_sock, recv_sock
@@ -34,11 +33,9 @@ class Traceroute:
         while self._ttl <= self._max_hops:
             send_sock, recv_sock = self._create_sockets()
             icmp_pack = IcmpPack(0, 0)
-            send_sock.sendto(icmp_pack.pack_icmp(),
-                             (self._host, self._port))
+            send_sock.sendto(icmp_pack.pack_icmp(), (self._host, 80))
             try:
                 data, address = recv_sock.recvfrom(1024)
-                print(address[0])
             except socket.timeout:
                 trace_result.append('*')
                 self._ttl += 1

@@ -1,4 +1,5 @@
 import struct
+import random
 
 
 def get_checksum(msg: bytes) -> int:
@@ -22,10 +23,10 @@ class IcmpPack:
         icmp_code = 0
         mock_data = struct.pack('!BBH', icmp_type, icmp_code, 0)
         current_sum = get_checksum(mock_data)
-        return struct.pack('!BBH', icmp_type, icmp_code, current_sum)
+        return struct.pack('!BBHHH', icmp_type, icmp_code, current_sum, 1, random.randint(256, 3000))
 
     @classmethod
     def get_icmp(cls, data: bytes):
-        icmp_type, icmp_code = struct.unpack('!BB', data[:16])
+        icmp_type, icmp_code = struct.unpack('!BB', data[:2])
         return cls(icmp_type, icmp_code)
 
