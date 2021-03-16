@@ -1,6 +1,8 @@
 import socket
+import requests
 
 from icmp import IcmpPack
+from trace_node import TraceNode
 
 
 class Traceroute:
@@ -28,8 +30,7 @@ class Traceroute:
         recv_sock.settimeout(3)
         return send_sock, recv_sock
 
-    def make_trace(self) -> list:
-        trace_result = []
+    def make_trace(self):
         while self._ttl <= self._max_hops:
             send_sock, recv_sock = self._create_sockets()
             icmp_pack = IcmpPack(0, 0)
@@ -37,10 +38,12 @@ class Traceroute:
             try:
                 data, address = recv_sock.recvfrom(1024)
             except socket.timeout:
-                trace_result.append('*')
+                yield '*\n'
                 self._ttl += 1
                 continue
-            trace_result.append(address[0])
+            whois_data = requests.get(f'http://ip-api.com/json/{address[0]}').json()
+            trace_node = TraceNode(address[0], whois_data)
+            yield trace_node
             recv_icmp = IcmpPack.get_icmp(data[20:])
             if self._is_over(recv_icmp):
                 send_sock.close()
@@ -49,5 +52,3 @@ class Traceroute:
             self._ttl += 1
             send_sock.close()
             recv_sock.close()
-
-        return trace_result
