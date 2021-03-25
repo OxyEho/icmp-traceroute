@@ -6,7 +6,7 @@
 
 ## Запуск 
     
-    python3 main.py host 
+    sudo python3 main.py host 
     host - хост до которого будет указан маршрут
 
 ## Пример запуска
