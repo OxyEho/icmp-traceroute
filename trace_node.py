@@ -11,10 +11,12 @@ class TraceNode:
             pass
         self.country = ''
         self.auto_sys = ''
-        if 'country' in whois_data:
+        if 'country' in whois_data and 'EU' not in whois_data["country"]:
             self.country = whois_data["country"]
-        if 'as' in whois_data:
-            self.auto_sys = whois_data['as']
+        if 'origin' in whois_data:
+            self.auto_sys = whois_data['origin']
+        if 'originas' in whois_data:
+            self.auto_sys = whois_data['originas']
 
     def _make_result_str(self):
         result = f'{self.address}\n'

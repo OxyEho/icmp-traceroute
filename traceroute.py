@@ -1,5 +1,4 @@
 import socket
-import requests
 
 from icmp import IcmpPack
 from trace_node import TraceNode
@@ -31,10 +30,39 @@ class Traceroute:
         return send_sock, recv_sock
 
     @staticmethod
-    def _get_whois_data(address):
+    def _get_whois_data(address: str):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((socket.gethostbyname(address), 43))
-        print(sock.recv(1024).decode())
+        sock.settimeout(1)
+        sock.connect((socket.gethostbyname('whois.iana.org'), 43))
+        sock.send((address + '\r\n').encode('utf-8'))
+        result_data = {}
+        try:
+            first_data = sock.recv(1024).decode()
+            if 'refer' in first_data:
+                refer_ind = first_data.index('refer')
+                first_data = first_data[refer_ind:].split('\n')[0].replace(' ', '').split(':')
+                whois_server = first_data[1]
+                whois_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                whois_sock.connect((whois_server, 43))
+                whois_sock.send((address + '\r\n').encode('utf-8'))
+                data = b''
+                current_part = whois_sock.recv(1024)
+                while current_part != b'':
+                    data += current_part
+                    current_part = whois_sock.recv(1024)
+                data = data.decode().lower()
+                for el in ['country', 'origin', 'originas']:
+                    if el in data:
+                        ind = data.index(el)
+                        record = data[ind:].split('\n')[0]
+                        record = record.replace(' ', '').split(':')
+                        result_data[record[0]] = record[1]
+                return result_data
+        except socket.timeout:
+            pass
+        finally:
+            sock.close()
+            return result_data
 
     def make_trace(self):
         while self._ttl <= self._max_hops:
@@ -47,8 +75,7 @@ class Traceroute:
                 yield '*\n'
                 self._ttl += 1
                 continue
-            whois_data = requests.get(f'http://ip-api.com/json/{address[0]}').json()
-            print(self._get_whois_data(address[0]))
+            whois_data = self._get_whois_data(address[0])
             trace_node = TraceNode(address[0], whois_data)
             yield trace_node
             recv_icmp = IcmpPack.get_icmp(data[20:])
