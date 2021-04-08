@@ -30,6 +30,12 @@ class Traceroute:
         recv_sock.settimeout(3)
         return send_sock, recv_sock
 
+    @staticmethod
+    def _get_whois_data(address):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((socket.gethostbyname(address), 43))
+        print(sock.recv(1024).decode())
+
     def make_trace(self):
         while self._ttl <= self._max_hops:
             send_sock, recv_sock = self._create_sockets()
@@ -42,6 +48,7 @@ class Traceroute:
                 self._ttl += 1
                 continue
             whois_data = requests.get(f'http://ip-api.com/json/{address[0]}').json()
+            print(self._get_whois_data(address[0]))
             trace_node = TraceNode(address[0], whois_data)
             yield trace_node
             recv_icmp = IcmpPack.get_icmp(data[20:])
